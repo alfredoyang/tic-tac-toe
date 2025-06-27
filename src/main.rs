@@ -34,6 +34,7 @@ const WIN_CONDITIONS: [[usize; 3]; 8] = [
 //   [0][1][2]
 //   [3][4][5]
 //   [6][7][8]
+#[derive(Clone)]
 struct Board {
     cells: [Cell; 9],
 }
@@ -75,77 +76,107 @@ impl Board {
         !self.cells.contains(&Cell::Empty)
     }
 
-    fn best_move(&self, player: Cell) -> Option<usize> {
+    /// Return `true` if placing a piece at `index` would stop the opponent
+    /// from completing a three-in-a-row on their next turn.
+    fn is_block_move(&self, index: usize, player: Cell) -> bool {
         let opponent = match player {
             Cell::X => Cell::O,
             Cell::O => Cell::X,
-            _ => return None,
+            _ => return false,
         };
 
-        // Step 1: Check for winning move
         for &[a, b, c] in WIN_CONDITIONS.iter() {
-            let cells = [self.cells[a], self.cells[b], self.cells[c]];
-            let player_count = cells.iter().filter(|&&c| c == player).count();
-            let empty_count = cells.iter().filter(|&&c| c == Cell::Empty).count();
-            if player_count == 2 && empty_count == 1 {
-                if self.cells[a] == Cell::Empty {
-                    return Some(a);
-                } else if self.cells[b] == Cell::Empty {
-                    return Some(b);
-                } else if self.cells[c] == Cell::Empty {
-                    return Some(c);
+            let indices = [a, b, c];
+            if indices.contains(&index) {
+                let cells = [self.cells[a], self.cells[b], self.cells[c]];
+                let opponent_count = cells.iter().filter(|&&c| c == opponent).count();
+                let empty_count = cells.iter().filter(|&&c| c == Cell::Empty).count();
+                if opponent_count == 2 && empty_count == 1 {
+                    return true;
                 }
             }
         }
 
-        // Step 2: Block opponent's winning move
-        for &[a, b, c] in WIN_CONDITIONS.iter() {
-            let cells = [self.cells[a], self.cells[b], self.cells[c]];
-            let opponent_count = cells.iter().filter(|&&c| c == opponent).count();
-            let empty_count = cells.iter().filter(|&&c| c == Cell::Empty).count();
-            if opponent_count == 2 && empty_count == 1 {
-                if self.cells[a] == Cell::Empty {
-                    return Some(a);
-                } else if self.cells[b] == Cell::Empty {
-                    return Some(b);
-                } else if self.cells[c] == Cell::Empty {
-                    return Some(c);
-                }
-            }
+        false
+    }
+
+    /// Compute the best move for `player` using the minimax algorithm.
+    /// When scores are equal, prefer moves that immediately block threats.
+    fn best_move(&self, player: Cell) -> Option<usize> {
+        if player != Cell::X && player != Cell::O {
+            return None;
         }
 
-        // Step 3: Maximize potential winning lines (functional style)
-        (0..9)
-            .filter(|&i| self.cells[i] == Cell::Empty)
-            .map(|i| {
-                let score = WIN_CONDITIONS
-                    .iter()
-                    .filter(|&&it| it.contains(&i))
-                    .map(|&pos_move| {
-                        let player_count = pos_move
-                            .iter()
-                            .filter(|&&c| self.cells[c] == player)
-                            .count();
-                        let opponent_count = pos_move
-                            .iter()
-                            .filter(|&&c| self.cells[c] == opponent)
-                            .count();
-                        let empty_count = pos_move
-                            .iter()
-                            .filter(|&&c| self.cells[c] == Cell::Empty)
-                            .count();
-                        if opponent_count == 0 && empty_count > 0 {
-                            // when there is a player count, there are more possibilities to win.
-                            player_count + 1
-                        } else {
-                            0
+        let opponent = match player {
+            Cell::X => Cell::O,
+            Cell::O => Cell::X,
+            _ => unreachable!(),
+        };
+
+        let mut best_score = i32::MIN;
+        let mut best_move = None;
+        for i in 0..9 {
+            if self.cells[i] == Cell::Empty {
+                let mut board = self.clone();
+                board.cells[i] = player;
+                let score = board.minimax(opponent, player);
+                if score > best_score {
+                    best_score = score;
+                    best_move = Some(i);
+                } else if score == best_score {
+                    let block_curr = self.is_block_move(i, player);
+                    if let Some(bm) = best_move {
+                        if block_curr && !self.is_block_move(bm, player) {
+                            best_move = Some(i);
                         }
-                    })
-                    .sum::<usize>();
-                (i, score)
-            })
-            .max_by_key(|&(_, score)| score)
-            .map(|(i, _)| i)
+                    }
+                }
+            }
+        }
+        best_move
+    }
+
+    /// Recursively evaluate the board using the minimax algorithm.
+    /// `turn` indicates whose move is being simulated and
+    /// `maximizing_player` is the player we are optimizing for.
+    /// Returns 1 for a win, -1 for a loss and 0 for a draw.
+    fn minimax(&self, turn: Cell, maximizing_player: Cell) -> i32 {
+        if let Some(winner) = self.check_winner() {
+            return if winner == maximizing_player { 1 } else { -1 };
+        }
+        if self.is_full() {
+            return 0;
+        }
+
+        let opponent = match turn {
+            Cell::X => Cell::O,
+            Cell::O => Cell::X,
+            _ => unreachable!(),
+        };
+
+        if turn == maximizing_player {
+            let mut best = i32::MIN;
+            for i in 0..9 {
+                if self.cells[i] == Cell::Empty {
+                    let mut board = self.clone();
+                    board.cells[i] = turn;
+                    let score = board.minimax(opponent, maximizing_player);
+                    best = best.max(score);
+                }
+            }
+            best
+        } else {
+            let mut best = i32::MAX;
+            for i in 0..9 {
+                if self.cells[i] == Cell::Empty {
+                    let mut board = self.clone();
+                    board.cells[i] = turn;
+                    let score = board.minimax(opponent, maximizing_player);
+                    best = best.min(score);
+                }
+            }
+            best
+        }
     }
 
     fn get_player_move(&self) -> Option<usize> {
@@ -296,11 +327,16 @@ mod tests {
     fn test_best_move() {
         let mut board = Board::new();
 
-        // Case 1: Empty board, should pick center
-        assert_eq!(
-            board.best_move(Cell::X),
-            Some(4),
-            "Empty board should pick center"
+        // Case 1: Empty board, should pick a corner or center
+        let first = board.best_move(Cell::X);
+        assert!(
+            first == Some(4)
+                || first == Some(0)
+                || first == Some(2)
+                || first == Some(6)
+                || first == Some(8),
+            "Empty board should pick a corner or center, got {:?}",
+            first
         );
 
         // Case 2: X can win by placing at index 2 (row [0,1,2])
