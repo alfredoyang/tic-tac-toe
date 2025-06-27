@@ -135,7 +135,7 @@ impl Board {
                             .filter(|&&c| self.cells[c] == Cell::Empty)
                             .count();
                         if opponent_count == 0 && empty_count > 0 {
-                            // when there is player count, the more possibility to win.
+                            // when there is a player count, there are more possibilities to win.
                             player_count + 1
                         } else {
                             0
