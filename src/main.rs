@@ -351,4 +351,21 @@ mod tests {
             "Invalid player returns None"
         );
     }
+    #[test]
+    fn test_check_winner() {
+        // Winning scenario: X fills the top row
+        let mut board = Board::new();
+        board.cells[0] = Cell::X;
+        board.cells[1] = Cell::X;
+        board.cells[2] = Cell::X;
+        assert_eq!(board.check_winner(), Some(Cell::X));
+
+        // Draw scenario: board is full without a winner
+        board.cells = [
+            Cell::X, Cell::O, Cell::X,
+            Cell::X, Cell::O, Cell::O,
+            Cell::O, Cell::X, Cell::X,
+        ];
+        assert_eq!(board.check_winner(), None);
+    }
 }
