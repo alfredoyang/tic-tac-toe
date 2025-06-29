@@ -24,3 +24,21 @@ Unit tests are included for core game logic. Run them with:
 cargo test
 ```
 
+
+## WebAssembly/WebGL Frontend
+
+A basic WebGL frontend is provided in the `web` folder. Build the WebAssembly package using [`wasm-pack`](https://github.com/rustwasm/wasm-pack):
+
+```bash
+wasm-pack build wasm --target web
+```
+
+To play in a browser you'll need to serve the files over HTTP. Because the
+frontend loads resources from `../wasm`, start the server from the repository
+root. On Linux you can use Python's built-in server:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then navigate to `http://localhost:8000/web` in your browser.
