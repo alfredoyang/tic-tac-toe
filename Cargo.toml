@@ -1,6 +1,9 @@
 [package]
-name = "Tic-Tac-Toe"
+name = "tic-tac-toe"
 version = "0.1.0"
 edition = "2024"
+
+[lib]
+name = "tic_tac_toe"
 
 [dependencies]
