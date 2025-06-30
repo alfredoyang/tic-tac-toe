@@ -59,4 +59,10 @@ impl WasmBoard {
                 Cell::Empty => 0u8,
             })
     }
+
+    pub fn winning_line(&self) -> Option<Box<[u32]>> {
+        self.board
+            .winning_line()
+            .map(|line| line.iter().map(|&i| i as u32).collect::<Vec<u32>>().into_boxed_slice())
+    }
 }

@@ -4,6 +4,8 @@ async function run() {
   await init();
   const board = new WasmBoard();
   const canvas = document.getElementById('boardCanvas');
+  const status = document.getElementById('status');
+  const restartButton = document.getElementById('restartButton');
   const gl = canvas.getContext('webgl');
 
   if (!gl) {
@@ -56,26 +58,40 @@ async function run() {
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
   const cellSize = canvas.width / 3;
+  let gameOver = false;
+
+  function drawWinningLine(indices) {
+    if (!indices) return;
+    const [a, , c] = indices;
+    const sx = (a % 3) * cellSize + cellSize / 2;
+    const sy = Math.floor(a / 3) * cellSize + cellSize / 2;
+    const ex = (c % 3) * cellSize + cellSize / 2;
+    const ey = Math.floor(c / 3) * cellSize + cellSize / 2;
+    drawLines([sx, sy, ex, ey], [0, 1, 0, 1], gl.LINES);
+  }
 
   function checkGameEnd() {
     const winner = board.check_winner();
     const cells = board.get_cells();
+    const line = board.winning_line();
     if (winner === 1) {
-      alert('You win!');
-      board.reset();
-      drawBoard(board.get_cells());
+      drawWinningLine(line);
+      gameOver = true;
+      status.textContent = 'You win!';
+      restartButton.style.display = 'block';
       return true;
     }
     if (winner === 2) {
-      alert('Computer wins!');
-      board.reset();
-      drawBoard(board.get_cells());
+      drawWinningLine(line);
+      gameOver = true;
+      status.textContent = 'Computer wins!';
+      restartButton.style.display = 'block';
       return true;
     }
     if (!cells.includes(0)) {
-      alert('Draw!');
-      board.reset();
-      drawBoard(board.get_cells());
+      gameOver = true;
+      status.textContent = 'Draw!';
+      restartButton.style.display = 'block';
       return true;
     }
     return false;
@@ -125,7 +141,18 @@ async function run() {
     }
   }
 
+  restartButton.addEventListener('click', () => {
+    board.reset();
+    drawBoard(board.get_cells());
+    status.textContent = '';
+    restartButton.style.display = 'none';
+    gameOver = false;
+  });
+
   canvas.addEventListener('click', (e) => {
+    if (gameOver) {
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
