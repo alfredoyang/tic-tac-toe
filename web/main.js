@@ -6,6 +6,17 @@ async function run() {
   const canvas = document.getElementById('boardCanvas');
   const status = document.getElementById('status');
   const restartButton = document.getElementById('restartButton');
+  const firstRadios = document.getElementsByName('first');
+  let humanPlayer = 1;
+  let computerPlayer = 2;
+
+  function disableRadio() {
+    for (const r of firstRadios) r.disabled = true;
+  }
+
+  function enableRadio() {
+    for (const r of firstRadios) r.disabled = false;
+  }
   const gl = canvas.getContext('webgl');
 
   if (!gl) {
@@ -60,6 +71,10 @@ async function run() {
   const cellSize = canvas.width / 3;
   let gameOver = false;
 
+  restartButton.textContent = 'Play';
+  restartButton.style.display = 'block';
+  enableRadio();
+
   function drawWinningLine(indices) {
     if (!indices) return;
     const [a, , c] = indices;
@@ -74,24 +89,21 @@ async function run() {
     const winner = board.check_winner();
     const cells = board.get_cells();
     const line = board.winning_line();
-    if (winner === 1) {
+    if (winner === humanPlayer || winner === computerPlayer) {
       drawWinningLine(line);
       gameOver = true;
-      status.textContent = 'You win!';
+      status.textContent = winner === humanPlayer ? 'You win!' : 'Computer wins!';
+      restartButton.textContent = 'Restart';
       restartButton.style.display = 'block';
-      return true;
-    }
-    if (winner === 2) {
-      drawWinningLine(line);
-      gameOver = true;
-      status.textContent = 'Computer wins!';
-      restartButton.style.display = 'block';
+      enableRadio();
       return true;
     }
     if (!cells.includes(0)) {
       gameOver = true;
       status.textContent = 'Draw!';
+      restartButton.textContent = 'Restart';
       restartButton.style.display = 'block';
+      enableRadio();
       return true;
     }
     return false;
@@ -142,11 +154,29 @@ async function run() {
   }
 
   restartButton.addEventListener('click', () => {
+    const choice = document.querySelector('input[name="first"]:checked').value;
+    if (choice === 'player') {
+      humanPlayer = 1;
+      computerPlayer = 2;
+    } else {
+      humanPlayer = 2;
+      computerPlayer = 1;
+    }
     board.reset();
     drawBoard(board.get_cells());
     status.textContent = '';
     restartButton.style.display = 'none';
+    restartButton.textContent = 'Restart';
     gameOver = false;
+    disableRadio();
+    if (choice === 'computer') {
+      const ai = board.best_move(computerPlayer);
+      if (ai !== undefined && ai !== null) {
+        board.make_move(ai, computerPlayer);
+      }
+      drawBoard(board.get_cells());
+      checkGameEnd();
+    }
   });
 
   canvas.addEventListener('click', (e) => {
@@ -159,10 +189,10 @@ async function run() {
     const col = Math.floor(x / cellSize);
     const row = Math.floor(y / cellSize);
     const idx = row * 3 + col;
-    if (board.make_move(idx, 1)) {
-      const ai = board.best_move(2);
+    if (board.make_move(idx, humanPlayer)) {
+      const ai = board.best_move(computerPlayer);
       if (ai !== undefined && ai !== null) {
-        board.make_move(ai, 2);
+        board.make_move(ai, computerPlayer);
       }
     }
     drawBoard(board.get_cells());
