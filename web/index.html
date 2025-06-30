@@ -9,8 +9,12 @@
 </head>
 <body>
     <canvas id="boardCanvas" width="300" height="300"></canvas>
+    <div id="options" style="margin-top:10px;">
+        <label><input type="radio" name="first" value="player" checked> You play first</label>
+        <label style="margin-left:10px;"><input type="radio" name="first" value="computer"> Computer plays first</label>
+    </div>
     <div id="status" style="margin-top:10px;font-weight:bold;"></div>
-    <button id="restartButton" style="display:none;margin-top:5px;">Restart</button>
+    <button id="restartButton" style="margin-top:5px;">Play</button>
     <script type="module" src="main.js"></script>
 </body>
 </html>
