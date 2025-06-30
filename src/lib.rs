@@ -56,15 +56,20 @@ impl Board {
         }
     }
 
-    pub fn check_winner(&self) -> Option<Cell> {
+    pub fn winning_line(&self) -> Option<[usize; 3]> {
         for &[a, b, c] in WIN_CONDITIONS.iter() {
-            if self.cells[a] != Cell::Empty &&
-               self.cells[a] == self.cells[b] &&
-               self.cells[b] == self.cells[c] {
-                return Some(self.cells[a]);
+            if self.cells[a] != Cell::Empty
+                && self.cells[a] == self.cells[b]
+                && self.cells[b] == self.cells[c]
+            {
+                return Some([a, b, c]);
             }
         }
         None
+    }
+
+    pub fn check_winner(&self) -> Option<Cell> {
+        self.winning_line().map(|line| self.cells[line[0]])
     }
 
     pub fn is_full(&self) -> bool {
@@ -260,5 +265,17 @@ mod tests {
             Cell::O, Cell::X, Cell::X,
         ];
         assert_eq!(board.check_winner(), None);
+    }
+
+    #[test]
+    fn test_winning_line() {
+        let mut board = Board::new();
+        board.cells[0] = Cell::O;
+        board.cells[4] = Cell::O;
+        board.cells[8] = Cell::O;
+        assert_eq!(board.winning_line(), Some([0, 4, 8]));
+
+        board.cells[8] = Cell::X;
+        assert_eq!(board.winning_line(), None);
     }
 }
