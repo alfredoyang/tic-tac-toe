@@ -2,6 +2,8 @@
 
 A simple command-line Tic-Tac-Toe game written in Rust.
 
+<img src="./tic-tao-toe.png" width="300"/>
+
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install) toolchain installed. This provides the `cargo` command used to build and run the project.
